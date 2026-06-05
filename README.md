@@ -35,9 +35,10 @@ https://github.com/Eric-1029/Powerschool_score_exporter/raw/refs/heads/main/powe
 
 1. Open the supported PowerSchool assessment page.
 2. Wait for the floating panel to appear.
-3. Click **Refresh** to update the data.
-4. Click **Copy** to copy the report.
-5. Paste it into Google Sheets, Excel, or another spreadsheet app.
+3. Click Display **All** records per page.
+4. Click **Refresh** to update the data.
+5. Click **Copy** to copy the report.
+6. Paste it into Google Sheets, Excel, or another spreadsheet app.
 
 ## Output
 
