@@ -8,7 +8,8 @@
 // @grant        GM_setClipboard
 // @license      MIT
 // ==/UserScript==
-
+// @updateURL    https://github.com/Eric-1029/Powerschool_score_exporter/raw/refs/heads/main/powerschool_score_exporter.user.js
+// @downloadURL  https://github.com/Eric-1029/Powerschool_score_exporter/raw/refs/heads/main/powerschool_score_exporter.user.js
 (function () {
   'use strict';
 
