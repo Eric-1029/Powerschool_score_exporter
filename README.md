@@ -58,10 +58,6 @@ Then it outputs a TSV table with:
 #	Due Date	Category	Assessment	Score	Numerator	Denominator
 ```
 
-## Note
-
-For automatic updates, make sure `@updateURL` and `@downloadURL` are inside the userscript metadata block, before:
-
 ```js
 // ==/UserScript==
 ```
