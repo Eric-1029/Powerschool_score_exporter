@@ -1,4 +1,4 @@
-```md
+
 # PowerSchool Assessment Score Export
 
 A Tampermonkey userscript that extracts assignment scores from the PowerSchool **Details by Assessment** page and creates a copyable text/TSV report.
