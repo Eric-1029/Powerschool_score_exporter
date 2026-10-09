@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PowerSchool Assessment Score Export
 // @namespace    https://github.com/Eric-1029/Powerschool_score_exporter
-// @version      1.0.1
+// @version      1.1.0
 // @description  Extract assignment scores from PowerSchool Details by Assessment pages.
 // @match        https://sishrsb.ednet.ns.ca/guardian/viewbyassessment.html*
 // @run-at       document-idle
@@ -20,9 +20,10 @@
   const REFRESH_ID = 'ps-assessment-score-export-refresh';
   const IGNORE_EXCLUSION_ID = 'ps-assessment-score-export-ignore-exclusion';
   const COPY_ID = 'ps-assessment-score-export-copy';
-  const HIDE_ID = 'ps-assessment-score-export-hide';
-  const LAUNCHER_ID = 'ps-assessment-score-export-launcher';
+  const TOGGLE_ID = 'ps-assessment-score-export-toggle';
+  const MARK_ID = 'ps-assessment-score-export-mark';
 
+  let pluginEnabled = false;
   let ignoreFinalGradeExclusion = false;
 
   function normalizeText(value) {
@@ -43,10 +44,6 @@
 
   function formatNumber(value) {
     return String(round2(value));
-  }
-
-  function formatPercent4(value) {
-    return Number(value).toFixed(4);
   }
 
   function formatPercent12(value) {
@@ -125,42 +122,6 @@
 
   function isStatusVisible(row, className) {
     return isElementVisible(row.querySelector(`img.${className}`));
-  }
-
-  function getPanel() {
-    return document.getElementById(PANEL_ID);
-  }
-
-  function getLauncher() {
-    return document.getElementById(LAUNCHER_ID);
-  }
-
-  function showPanel() {
-    const panel = getPanel();
-    const launcher = getLauncher();
-
-    if (panel) {
-      panel.classList.remove('is-hidden');
-    }
-
-    if (launcher) {
-      launcher.classList.add('is-hidden');
-    }
-
-    refreshPanel();
-  }
-
-  function hidePanel() {
-    const panel = getPanel();
-    const launcher = getLauncher();
-
-    if (panel) {
-      panel.classList.add('is-hidden');
-    }
-
-    if (launcher) {
-      launcher.classList.remove('is-hidden');
-    }
   }
 
   function getTable() {
@@ -323,171 +284,127 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      #${PANEL_ID} {
-        position: fixed;
-        right: 16px;
-        bottom: 16px;
-        z-index: 2147483647;
-        width: min(720px, calc(100vw - 32px));
-        max-height: calc(100vh - 32px);
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 12px;
-        border: 1px solid rgba(15, 23, 42, 0.18);
-        border-radius: 14px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 252, 0.98));
-        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.24);
-        color: #0f172a;
-        font: 13px/1.45 Arial, Helvetica, sans-serif;
+      #${TOGGLE_ID} {
+        vertical-align: middle;
       }
 
-      #${PANEL_ID} .ps-assessment-score-export-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        font-size: 14px;
-        font-weight: 700;
+      #${MARK_ID} {
+        margin: 6px 0 4px;
+        padding-top: 6px;
+        border-top: 1px solid #ccc;
+        overflow-wrap: anywhere;
+      }
+
+      #${MARK_ID} strong {
+        display: block;
       }
 
       #${PANEL_ID} .ps-assessment-score-export-actions {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 8px;
+        margin: 0 10px 10px;
       }
 
-      #${PANEL_ID} button {
-        appearance: none;
-        border: 1px solid rgba(15, 23, 42, 0.16);
-        border-radius: 10px;
-        background: #fff;
-        color: #0f172a;
-        padding: 6px 10px;
-        cursor: pointer;
-        font: inherit;
+      #${PANEL_ID} .ps-assessment-score-export-actions button {
+        margin: 0;
       }
 
-      #${PANEL_ID} button:hover {
-        background: #f8fafc;
-      }
-
-      #${PANEL_ID} button:active {
-        transform: translateY(1px);
-      }
-
-      #${PANEL_ID} button[aria-pressed="true"] {
-        border-color: #2563eb;
-        background: #dbeafe;
-        color: #1d4ed8;
-      }
-
-      #${STATUS_ID} {
-        padding: 8px 10px;
-        border-radius: 10px;
-        background: rgba(15, 23, 42, 0.04);
-        white-space: pre-wrap;
+      #${STATUS_ID}, #${PANEL_ID} label {
+        display: block;
+        margin: 0 10px 10px;
       }
 
       #${OUTPUT_ID} {
-        width: 100%;
-        min-height: 280px;
-        max-height: calc(100vh - 240px);
-        resize: vertical;
-        border: 1px solid rgba(15, 23, 42, 0.16);
-        border-radius: 12px;
-        padding: 10px;
-        background: #fff;
-        color: #0f172a;
-        font: 12px/1.5 Consolas, 'Courier New', monospace;
+        display: block;
+        width: calc(100% - 20px);
+        margin: 0 10px 10px;
         box-sizing: border-box;
+        resize: vertical;
+        font-family: monospace;
       }
 
-      #${PANEL_ID}.is-hidden {
-        display: none;
-      }
-
-      #${LAUNCHER_ID} {
-        position: fixed;
-        right: 18px;
-        bottom: 18px;
-        z-index: 2147483647;
-        width: 18px;
-        height: 18px;
-        padding: 0;
-        border: 1px solid rgba(255, 255, 255, 0.9);
-        border-radius: 50%;
-        background: #2563eb;
-        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.28);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      #${LAUNCHER_ID}.is-hidden {
+      #${PANEL_ID}[hidden], #${MARK_ID}[hidden] {
         display: none;
       }
     `;
     document.head.appendChild(style);
   }
 
-  function ensurePanel() {
-    let panel = document.getElementById(PANEL_ID);
-
-    if (panel) {
-      return panel;
+  function ensureUi() {
+    if (document.getElementById(TOGGLE_ID)) {
+      return true;
     }
 
-    panel = document.createElement('section');
+    const courseTable = document.getElementById('coursetable');
+    const markHeader = Array.from(courseTable?.querySelectorAll('thead th') || []).find((header) =>
+      /^In-Progress Mark\b/i.test(normalizeText(header.textContent))
+    );
+    const markCell = markHeader && courseTable.querySelector('tbody tr')?.cells[markHeader.cellIndex];
+    const planHeading = Array.from(document.querySelectorAll('h2')).find((heading) =>
+      /^Assessment and Evaluation Plan$/i.test(normalizeText(heading.textContent))
+    );
+
+    if (!markCell || !planHeading) {
+      return false;
+    }
+
+    const mark = document.createElement('div');
+    mark.id = MARK_ID;
+    mark.hidden = true;
+    mark.setAttribute('aria-live', 'polite');
+    markCell.appendChild(mark);
+
+    const panel = document.createElement('section');
     panel.id = PANEL_ID;
+    panel.className = 'box-round';
+    panel.hidden = true;
     panel.innerHTML = `
-      <div class="ps-assessment-score-export-title">
-        <span>PowerSchool Assessment Score Export</span>
-        <span id="${STATUS_ID}">Waiting for assessment table...</span>
-      </div>
+      <h2>Assessment Score Export</h2>
       <div class="ps-assessment-score-export-actions">
         <button id="${REFRESH_ID}" type="button">Refresh</button>
         <button id="${IGNORE_EXCLUSION_ID}" type="button" aria-pressed="false" title="Include assessments marked 'Assessment is not included in final grade' in totals.">Ignore final-grade exclusion: Off</button>
         <button id="${COPY_ID}" type="button">Copy</button>
-        <button id="${HIDE_ID}" type="button">Hide</button>
       </div>
-      <textarea id="${OUTPUT_ID}" readonly spellcheck="false"></textarea>
+      <p id="${STATUS_ID}" role="status">Waiting for assessment table...</p>
+      <label for="${OUTPUT_ID}">Text / TSV report</label>
+      <textarea id="${OUTPUT_ID}" rows="10" readonly spellcheck="false"></textarea>
     `;
 
-    document.body.appendChild(panel);
+    const planSection = planHeading.parentElement.classList.contains('box-round') ? planHeading.parentElement : planHeading;
+    planSection.before(panel);
 
-    panel.querySelector(`#${REFRESH_ID}`).addEventListener('click', () => refreshPanel());
+    panel.querySelector(`#${REFRESH_ID}`).addEventListener('click', () => refreshReport());
     const ignoreExclusionButton = panel.querySelector(`#${IGNORE_EXCLUSION_ID}`);
     ignoreExclusionButton.addEventListener('click', () => {
       ignoreFinalGradeExclusion = !ignoreFinalGradeExclusion;
       ignoreExclusionButton.setAttribute('aria-pressed', String(ignoreFinalGradeExclusion));
       ignoreExclusionButton.textContent = `Ignore final-grade exclusion: ${ignoreFinalGradeExclusion ? 'On' : 'Off'}`;
-      refreshPanel();
+      refreshReport();
     });
     panel.querySelector(`#${COPY_ID}`).addEventListener('click', () => copyCurrentReport());
-    panel.querySelector(`#${HIDE_ID}`).addEventListener('click', () => hidePanel());
 
-    return panel;
-  }
+    const toggle = document.createElement('button');
+    toggle.id = TOGGLE_ID;
+    toggle.type = 'button';
+    toggle.textContent = 'Enable Plugin';
+    toggle.setAttribute('aria-pressed', 'false');
+    toggle.setAttribute('aria-controls', `${MARK_ID} ${PANEL_ID}`);
+    toggle.addEventListener('click', () => {
+      pluginEnabled = !pluginEnabled;
+      toggle.textContent = pluginEnabled ? 'Disable Plugin' : 'Enable Plugin';
+      toggle.setAttribute('aria-pressed', String(pluginEnabled));
+      mark.hidden = !pluginEnabled;
+      panel.hidden = !pluginEnabled;
 
-  function ensureLauncher() {
-    let launcher = getLauncher();
+      if (pluginEnabled) {
+        refreshReport();
+      }
+    });
+    markHeader.appendChild(toggle);
 
-    if (launcher) {
-      return launcher;
-    }
-
-    launcher = document.createElement('button');
-    launcher.id = LAUNCHER_ID;
-    launcher.type = 'button';
-    launcher.className = 'is-hidden';
-    launcher.title = 'Open PowerSchool score export';
-    launcher.setAttribute('aria-label', 'Open PowerSchool score export');
-    launcher.addEventListener('click', () => showPanel());
-
-    document.body.appendChild(launcher);
-    return launcher;
+    return true;
   }
 
   function setStatus(text) {
@@ -506,24 +423,37 @@
 
   let latestReport = '';
 
-  function refreshPanel() {
+  function refreshReport() {
+    if (!pluginEnabled) {
+      return;
+    }
+
     const rows = extractRows();
+    const mark = document.getElementById(MARK_ID);
 
     if (!rows.length) {
       latestReport = '';
       setStatus('No assessment rows found yet.');
       setOutput('');
+      mark.textContent = 'Calculated Mark: n/a (no assessment rows found).';
       return;
     }
 
     const summary = summarize(rows);
     latestReport = buildReport(summary);
 
+    const percent = summary.countedScoredRows.length && summary.possible > 0
+      ? `${formatPercent12((summary.earned / summary.possible) * 100)}%`
+      : 'n/a';
+    mark.innerHTML = `
+      <strong>Calculated Mark: ${percent}</strong>
+      <div>Earned / Possible: ${formatNumber(summary.earned)} / ${formatNumber(summary.possible)}</div>
+      <div>Counted: ${summary.countedRows.length} | Excluded: ${summary.excludedRows.length} | Unscored: ${summary.unscoredRows.length}</div>
+      <div>Final-grade exclusions: ${ignoreFinalGradeExclusion ? 'ignored' : 'respected'}</div>
+    `;
+
     setStatus(
-      `Total: ${summary.rows.length} | Counted: ${summary.countedRows.length} | Excluded: ${summary.excludedRows.length} | Unscored counted: ${summary.unscoredRows.length}` +
-        (summary.countedScoredRows.length
-          ? ` | Earned / Possible: ${formatNumber(summary.earned)} / ${formatNumber(summary.possible)} | ${formatPercent4(summary.percent)}%`
-          : '')
+      `Total: ${summary.rows.length} | Counted: ${summary.countedRows.length} | Excluded: ${summary.excludedRows.length} | Unscored counted: ${summary.unscoredRows.length}`
     );
     setOutput(latestReport);
 
@@ -532,7 +462,7 @@
 
   async function copyCurrentReport() {
     if (!latestReport) {
-      refreshPanel();
+      refreshReport();
     }
 
     if (!latestReport) {
@@ -570,12 +500,11 @@
 
   function boot(attempt = 0) {
     injectStyle();
-    ensurePanel();
-    ensureLauncher();
-
-    const launcher = getLauncher();
-    if (launcher) {
-      launcher.classList.add('is-hidden');
+    if (!ensureUi()) {
+      if (attempt < 20) {
+        setTimeout(() => boot(attempt + 1), 250);
+      }
+      return;
     }
 
     const table = getTable();
@@ -591,7 +520,7 @@
       return;
     }
 
-    refreshPanel();
+    refreshReport();
   }
 
   if (document.readyState === 'loading') {
