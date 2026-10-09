@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PowerSchool Assessment Score Export
 // @namespace    https://github.com/Eric-1029/Powerschool_score_exporter
-// @version      1.0.0
+// @version      1.0.1
 // @description  Extract assignment scores from PowerSchool Details by Assessment pages.
 // @match        https://sishrsb.ednet.ns.ca/guardian/viewbyassessment.html*
 // @run-at       document-idle
@@ -18,9 +18,12 @@
   const STATUS_ID = 'ps-assessment-score-export-status';
   const OUTPUT_ID = 'ps-assessment-score-export-output';
   const REFRESH_ID = 'ps-assessment-score-export-refresh';
+  const IGNORE_EXCLUSION_ID = 'ps-assessment-score-export-ignore-exclusion';
   const COPY_ID = 'ps-assessment-score-export-copy';
   const HIDE_ID = 'ps-assessment-score-export-hide';
   const LAUNCHER_ID = 'ps-assessment-score-export-launcher';
+
+  let ignoreFinalGradeExclusion = false;
 
   function normalizeText(value) {
     return String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -202,7 +205,7 @@
     }
 
     const absent = isStatusVisible(row, 'absent');
-    const countInTotal = !isExcludedFromFinalGrade(row) && !absent;
+    const countInTotal = (ignoreFinalGradeExclusion || !isExcludedFromFinalGrade(row)) && !absent;
 
     return {
       rowNumber: rowNumber + 1,
@@ -373,6 +376,12 @@
         transform: translateY(1px);
       }
 
+      #${PANEL_ID} button[aria-pressed="true"] {
+        border-color: #2563eb;
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+
       #${STATUS_ID} {
         padding: 8px 10px;
         border-radius: 10px;
@@ -439,6 +448,7 @@
       </div>
       <div class="ps-assessment-score-export-actions">
         <button id="${REFRESH_ID}" type="button">Refresh</button>
+        <button id="${IGNORE_EXCLUSION_ID}" type="button" aria-pressed="false" title="Include assessments marked 'Assessment is not included in final grade' in totals.">Ignore final-grade exclusion: Off</button>
         <button id="${COPY_ID}" type="button">Copy</button>
         <button id="${HIDE_ID}" type="button">Hide</button>
       </div>
@@ -448,6 +458,13 @@
     document.body.appendChild(panel);
 
     panel.querySelector(`#${REFRESH_ID}`).addEventListener('click', () => refreshPanel());
+    const ignoreExclusionButton = panel.querySelector(`#${IGNORE_EXCLUSION_ID}`);
+    ignoreExclusionButton.addEventListener('click', () => {
+      ignoreFinalGradeExclusion = !ignoreFinalGradeExclusion;
+      ignoreExclusionButton.setAttribute('aria-pressed', String(ignoreFinalGradeExclusion));
+      ignoreExclusionButton.textContent = `Ignore final-grade exclusion: ${ignoreFinalGradeExclusion ? 'On' : 'Off'}`;
+      refreshPanel();
+    });
     panel.querySelector(`#${COPY_ID}`).addEventListener('click', () => copyCurrentReport());
     panel.querySelector(`#${HIDE_ID}`).addEventListener('click', () => hidePanel());
 
